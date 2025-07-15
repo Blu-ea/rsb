@@ -7,7 +7,7 @@ fn computed_result (n : u32,result : u32) {
 }
 
 #[test]
-fn test_ex00() {
+fn test_ex02() {
     computed_result(0,0);
     computed_result(1,1);
     computed_result(2,3);

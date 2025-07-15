@@ -5,7 +5,7 @@ fn assert_multiplier_eq (a : u32, b : u32) {
 }
 
 #[test]
-fn test_ex00() {
+fn test_ex01() {
     assert_multiplier_eq(1, 2);
     assert_multiplier_eq(2, 2);
     assert_multiplier_eq(0, 2);
