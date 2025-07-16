@@ -35,6 +35,16 @@ fn test_table(operator: char){
 
 #[test]
 fn test_ex03_print_table() {
+    println!("Table for operator Nothing");
+    test_rpn("1");
+    test_rpn("0");
+    println!();
+
+    println!("Table for operator !");
+    test_rpn("1!");
+    test_rpn("0!");
+    println!();
+    
     test_table('&');
     test_table('|');
     test_table('^');
