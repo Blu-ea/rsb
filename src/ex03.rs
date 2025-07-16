@@ -91,7 +91,7 @@ impl NodeRPN {
             OperatorRPN::IMPLY => self.left.as_deref().unwrap().compute() | !self.right.as_deref().unwrap().compute(),
             OperatorRPN::EQUAL => self.left.as_deref().unwrap().compute() == self.right.as_deref().unwrap().compute(),
 
-            OperatorRPN::NONE => false
+            OperatorRPN::NONE => unreachable!()
         }
     }
 }
@@ -128,6 +128,6 @@ fn get_operator(val: char) -> OperatorRPN {
         '^' => OperatorRPN::XOR,
         '>' => OperatorRPN::IMPLY,
         '=' => OperatorRPN::EQUAL,
-        _ => OperatorRPN::NONE, // Should not be any at this point
+        _ => unreachable!()
     }
 }
