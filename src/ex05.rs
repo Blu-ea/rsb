@@ -22,6 +22,23 @@ struct NodeRPN {
 }
 
 impl NodeRPN {
+    
+    fn new_tree_from_formula(formula: &str) -> Result<NodeRPN, String> {
+        let mut root = NodeRPN { operator: OperatorRPN::NONE, left: None, right: None};
+
+        for val in formula.chars().rev() {
+            let is_inserted = root.add_node(get_operator(val), );
+            if is_inserted == false {
+                return Err(format!("RNP: cannot compute - {} - missing operator", formula));
+            }
+        }
+        if !root.is_full() {
+            return Err(format!("RNP: cannot compute - {} - missing numbers", formula));
+        }
+        
+        Ok(root)
+    }
+    
     fn add_node(& mut self, value: OperatorRPN) -> bool {
         match self.operator {
             OperatorRPN::VAL(_) => false,
@@ -94,7 +111,7 @@ impl NodeRPN {
                 let arg = (i >> b) & 1;
                 if arg == 1{
                     print!("| \x1b[92m{}\x1b[0m ",arg);
-                } else { 
+                } else {
                     print!("| \x1b[91m{}\x1b[0m ",arg);
                 }
                 b += 1;
@@ -126,36 +143,57 @@ impl NodeRPN {
             OperatorRPN::NONE => unreachable!()
         }
     }
+    
+    fn to_char(&self) -> char{
+        match self.operator {
+            OperatorRPN::VAL(val) => val,
+            OperatorRPN::NOT => '!',
+            OperatorRPN::AND => '&',
+            OperatorRPN::OR => '|',
+            OperatorRPN::XOR => '^',
+            OperatorRPN::IMPLY => '>',
+            OperatorRPN::EQUAL => '=',
+            OperatorRPN::NONE => unimplemented!(),
+        }
+    }
+
+    fn to_string(&self) -> String {
+        match self.operator {
+            OperatorRPN::VAL(_) => self.to_char().to_string(),
+            
+            OperatorRPN::NOT 
+                => format!("{}{}", self.left.as_deref().unwrap().to_string(), self.to_char()),
+            
+            OperatorRPN::AND | OperatorRPN::OR | OperatorRPN::XOR | OperatorRPN::IMPLY | OperatorRPN::EQUAL 
+                => format!("{}{}{}", self.right.as_deref().unwrap().to_string(), self.left.as_deref().unwrap().to_string(), self.to_char()),
+            
+            OperatorRPN::NONE => unimplemented!(),
+        }
+
+    }
+
+    fn to_nnf(&self) -> NodeRPN{
+        // let mut new_root =
+        todo!()
+    }
 }
 
-pub fn  print_truth_table(formula: &str) {
-    let formula = formula.to_uppercase();
-    let mut root = NodeRPN { operator: OperatorRPN::NONE, left: None, right: None};
 
-    let mut array_var  = Vec::with_capacity(26);
-    for val in formula.chars() {
-        if "!&|^>=".find(val) == None {
-            if !val.is_ascii_alphabetic() {
-                return eprintln!("RNP: unauthorised char - {}", val);
-            }
-            if !array_var.contains(&val) {
-                array_var.push(val);
-            }
-        }
-    }
-    array_var.sort();
+/**
+    Can only use !, & and |
+*/
 
-    for val in formula.chars().rev() {
-        let is_inserted = root.add_node(get_operator(val), );
-        if is_inserted == false {
-            return eprintln!("RNP: cannot compute - {} - missing operator", formula);
-        }
-    }
-    if !root.is_full() {
-        return eprintln!("RNP: cannot compute - {} - missing numbers", formula);
-    }
-    root.render_table(array_var);
-
+pub fn negation_normal_form(formula: &str) -> String{
+    let root = NodeRPN::new_tree_from_formula(formula);
+    if root.is_err(){
+        return String::from("");
+    } 
+    let mut root = root.unwrap();
+    println!("{}",root.to_string());
+    
+    
+    
+    "".to_string()
 }
 
 fn get_operator(val: char) -> OperatorRPN {

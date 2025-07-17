@@ -12,6 +12,8 @@ fn test_ex04() {
     test_truth_table("AB&AB|&!"); // (A & B) & (A | B)
     test_truth_table("AB&C|"); // (A&B) | C
     test_truth_table("AB^"); // (A ^ B)
+    test_truth_table("AB&!AB|&"); // (A ^ B)
+    test_truth_table("A!B!|AB|&"); // (A ^ B)
     test_truth_table("AB|AB&!&"); // (A | B) & !(A & B) -> Should be an XOR `^` gate 
     test_truth_table("AB>CD|&!EFG>^="); //|  !((A > B)& (C | D))  == (E ^ (F > G))
 }
