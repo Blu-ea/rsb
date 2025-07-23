@@ -1,3 +1,4 @@
+use std::fmt::{Display, Write};
 
 #[derive(Copy, Clone)]
 enum OperatorRPN{
@@ -21,10 +22,20 @@ struct NodeRPN {
     right: Option<Box<NodeRPN>>,
 }
 
+impl Default for NodeRPN {
+    fn default() -> Self {
+        NodeRPN{
+            operator: OperatorRPN::NONE,
+            left: None,
+            right: None
+        }
+    }
+}
+
 impl NodeRPN {
     
     fn new_tree_from_formula(formula: &str) -> Result<NodeRPN, String> {
-        let mut root = NodeRPN { operator: OperatorRPN::NONE, left: None, right: None};
+        let mut root = NodeRPN::default();
 
         for val in formula.chars().rev() {
             let is_inserted = root.add_node(get_operator(val), );
@@ -45,7 +56,7 @@ impl NodeRPN {
 
             OperatorRPN::NOT => {
                 if self.left.is_none(){
-                    self.left = Some(Box::new(NodeRPN {operator: OperatorRPN::NONE, left: None, right: None}));
+                    self.left = Some(Box::new(NodeRPN::default()));
                 }
                 self.left.as_deref_mut().unwrap().add_node(value)
             }
@@ -56,13 +67,13 @@ impl NodeRPN {
                 let mut right_insert = false;
 
                 if self.left.is_none(){
-                    self.left = Some(Box::new(NodeRPN {operator: OperatorRPN::NONE, left: None, right: None}));
+                    self.left = Some(Box::new(NodeRPN::default()));
                 }
                 left_insert = self.left.as_deref_mut().unwrap().add_node(value);
 
                 if left_insert == false{
                     if self.right.is_none() {
-                        self.right = Some(Box::new(NodeRPN { operator: OperatorRPN::NONE, left: None, right: None }));
+                        self.right = Some(Box::new(NodeRPN::default()));
                     }
                     right_insert = self.right.as_deref_mut().unwrap().add_node(value);
                 }
@@ -157,24 +168,119 @@ impl NodeRPN {
         }
     }
 
-    fn to_string(&self) -> String {
+    /*
+    `=`  -> (A > B) ^ (B > A)
+    
+        .         |
+        .   &           &
+        .(A   !B)   (!A   B)
+        .(     B)   ( A    )
+
+    `>`  -> (!A | B)
+
+    `^`  -> (!A | !B) & (A | B)
+
+        .          &
+        .    |           |
+        .(!  | ! )   (!  | ! )
+        .( A |  B)   ( A |  B)
+    
+    */
+    fn to_nnf(&self, is_negate: bool) -> NodeRPN{
         match self.operator {
-            OperatorRPN::VAL(_) => self.to_char().to_string(),
-            
-            OperatorRPN::NOT 
-                => format!("{}{}", self.left.as_deref().unwrap().to_string(), self.to_char()),
-            
-            OperatorRPN::AND | OperatorRPN::OR | OperatorRPN::XOR | OperatorRPN::IMPLY | OperatorRPN::EQUAL 
-                => format!("{}{}{}", self.right.as_deref().unwrap().to_string(), self.left.as_deref().unwrap().to_string(), self.to_char()),
-            
+            OperatorRPN::VAL(_) => {
+                let mut nnf_node = NodeRPN{operator: OperatorRPN::NONE, left: None, right: None};
+                if is_negate{
+                    nnf_node.add_node(OperatorRPN::NOT);
+                }
+                nnf_node.add_node(self.operator);
+                nnf_node
+
+            }
+
+            OperatorRPN::NOT => {
+                self.left.as_deref().unwrap().to_nnf(!is_negate)
+            }
+
+            OperatorRPN::AND => {
+                NodeRPN {
+                    operator: if is_negate { OperatorRPN::OR } else { OperatorRPN::AND },
+                    left: Some(Box::new(self.left.as_deref().unwrap().to_nnf(is_negate))),
+                    right: Some(Box::new(self.right.as_deref().unwrap().to_nnf(is_negate))),
+                }
+            }
+            OperatorRPN::OR => {
+                NodeRPN {
+                    operator: if is_negate { OperatorRPN::AND } else { OperatorRPN::OR },
+                    left: Some(Box::new(self.left.as_deref().unwrap().to_nnf(is_negate))),
+                    right: Some(Box::new(self.right.as_deref().unwrap().to_nnf(is_negate))),
+                }
+            }
+
+            OperatorRPN::XOR => { // -> (!A | !B) & (A | B)
+                NodeRPN {
+                    operator: if is_negate { OperatorRPN::OR } else { OperatorRPN::AND },
+                    left : Some(Box::new(NodeRPN{
+                        operator : if is_negate { OperatorRPN::AND } else { OperatorRPN::OR },
+                        left: Some(Box::new(self.left.as_deref().unwrap().to_nnf(is_negate))),
+                        right: Some(Box::new(self.right.as_deref().unwrap().to_nnf(is_negate))),
+                    })),
+                    right : Some(Box::new(NodeRPN{
+                        operator : if is_negate { OperatorRPN::AND } else { OperatorRPN::OR },
+                        left: Some(Box::new(self.left.as_deref().unwrap().to_nnf(!is_negate))),
+                        right: Some(Box::new(self.right.as_deref().unwrap().to_nnf(!is_negate))),
+                    })),
+                }
+            }
+            OperatorRPN::IMPLY => {
+                NodeRPN {
+                    operator: if is_negate { OperatorRPN::AND } else { OperatorRPN::OR },
+                    left: Some(Box::new(self.left.as_deref().unwrap().to_nnf(is_negate))),
+                    right: Some(Box::new(self.right.as_deref().unwrap().to_nnf(!is_negate))),
+                }
+            }
+
+            OperatorRPN::EQUAL => {
+                NodeRPN {
+                    operator: if is_negate { OperatorRPN::AND } else { OperatorRPN::OR },
+                    left : Some(Box::new(NodeRPN{
+                        operator : if is_negate { OperatorRPN::OR } else { OperatorRPN::AND },
+                        left: Some(Box::new(self.left.as_deref().unwrap().to_nnf(!is_negate))),
+                        right: Some(Box::new(self.right.as_deref().unwrap().to_nnf(!is_negate))),
+                    })),
+                    right : Some(Box::new(NodeRPN{
+                        operator : if is_negate { OperatorRPN::OR } else { OperatorRPN::AND },
+                        left: Some(Box::new(self.left.as_deref().unwrap().to_nnf(is_negate))),
+                        right: Some(Box::new(self.right.as_deref().unwrap().to_nnf(is_negate))),
+                    })),
+                }
+            }
+
+            OperatorRPN::NONE => unreachable!()
+        }
+    }
+}
+
+impl Display for NodeRPN {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.operator {
+            OperatorRPN::VAL(_) => f.write_char(self.to_char()),
+
+            OperatorRPN::NOT
+            => write!(f, "{}{}", 
+                self.left.as_deref().unwrap_or(&NodeRPN { operator: OperatorRPN::VAL('*'), left: None, right: None }),
+                self.to_char()
+            ),
+
+            OperatorRPN::AND | OperatorRPN::OR | OperatorRPN::XOR | OperatorRPN::IMPLY | OperatorRPN::EQUAL
+            => write!(f, "{}{}{}", 
+                self.right.as_deref().unwrap_or(&NodeRPN { operator: OperatorRPN::VAL('*'), left: None, right: None }), 
+                self.left.as_deref().unwrap_or(&NodeRPN { operator: OperatorRPN::VAL('*'), left: None, right: None }), 
+                self.to_char()
+            ),
+
             OperatorRPN::NONE => unimplemented!(),
         }
-
-    }
-
-    fn to_nnf(&self) -> NodeRPN{
-        // let mut new_root =
-        todo!()
     }
 }
 
@@ -186,15 +292,15 @@ impl NodeRPN {
 pub fn negation_normal_form(formula: &str) -> String{
     let root = NodeRPN::new_tree_from_formula(formula);
     if root.is_err(){
-        return String::from("");
+        return String::from("ERROR");
     } 
-    let mut root = root.unwrap();
-    println!("{}",root.to_string());
-    
-    
-    
-    "".to_string()
+    let root = root.unwrap();
+
+    let nnf_root = root.to_nnf(false);
+    nnf_root.to_string()
+
 }
+
 
 fn get_operator(val: char) -> OperatorRPN {
     match val{

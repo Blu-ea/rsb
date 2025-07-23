@@ -1,7 +1,7 @@
 use rsb::ex04::print_truth_table;
 
 fn test_truth_table(formula: &str) {
-    println!("== -- == Table for formula `\x1b[36m {}\x1b[0m` == -- ==", formula);
+    println!("== -- == Table for formula `\x1b[36m{}\x1b[0m` == -- ==", formula);
     print_truth_table(formula);
     println!()
 }
@@ -27,4 +27,25 @@ fn test_ex04_basic_table() {
     test_truth_table("ab^"); // A ^ B
     test_truth_table("ab>"); // A > B
     test_truth_table("ab="); // A = B
+}
+
+#[test]
+fn test_ex04_equivalent_operation() {
+    test_truth_table("ab^"); // A ^ B
+    test_truth_table("ab=!"); // !(A = B)
+    test_truth_table("a!b!|AB|&"); // (!A | !B) & (A | B)
+
+    test_truth_table("ab^!"); // !(A ^ B)
+    test_truth_table("ab="); // A = B
+    test_truth_table("AB&A!B!&|"); // (A & B) | (!A & !B)
+    
+    test_truth_table("AB>"); // A > B
+    test_truth_table("A!B|"); // (!A | B)
+
+    test_truth_table("AB>!"); // !(A > B)
+    test_truth_table("AB!&"); // (A & !B)
+
+
+    test_truth_table("ABCCBA=^!>!&!!>");
+    test_truth_table("AB!CC!B!A!|BA|&|CBA&B!A!&||&|||");
 }
