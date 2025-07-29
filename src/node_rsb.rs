@@ -177,7 +177,7 @@ impl NodeRPN {
         }
     }
 
-    fn compute(&self, i: &u32, array_var: &Vec<char>) -> bool {
+    pub fn compute(&self, i: &u32, array_var: &Vec<char>) -> bool {
         match self.operator {
             OperatorRPN::VAL(var) => {
                 let position = array_var.iter().position(|&variable| variable == var);
