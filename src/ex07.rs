@@ -4,8 +4,7 @@ pub fn sat(formula: &str) -> bool {
     let formula = formula.to_uppercase();
     let root = NodeRPN::new_tree_from_formula(formula.as_str());
     if root.is_err(){
-        eprintln!("RNP: cannot compute - {} - missing operator", formula);
-        unreachable!()
+        panic!("{}", "Error");
     }
     let root = root.unwrap();
 
