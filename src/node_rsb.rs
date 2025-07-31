@@ -73,7 +73,7 @@ impl Display for NodeRPN {
 }
 
 impl NodeRPN {
-    pub fn new_tree_from_formula(formula: &str) -> Result<NodeRPN, String> {
+    pub fn new_tree_from_formula(formula: &str) -> Result<NodeRPN, String> { // todo: check for not authorised char in the formula
         let mut root = NodeRPN::default();
 
         for val in formula.chars().rev() {
@@ -181,7 +181,7 @@ impl NodeRPN {
         match self.operator {
             OperatorRPN::VAL(var) => {
                 let position = array_var.iter().position(|&variable| variable == var);
-                (i >> position.unwrap()) & 1 == 1 // if 1 -> 1 == 1 so true | if 0 -> false
+                ((i >> position.unwrap()) & 1)== 1 // if 1 -> 1 == 1 so true | if 0 -> false
             },
 
             OperatorRPN::NOT => !self.left.as_deref().unwrap().compute(i, array_var),
@@ -340,4 +340,127 @@ impl NodeRPN { // ex06 -> CNF
             },
         }
     }
+}
+
+
+impl NodeRPN{ // ex09 -> Eval set
+
+    pub fn compute_sets(&self, universe: &Vec<i32>,array_var: &Vec<char>,  sets: &Vec<Vec<i32>>) -> Vec<i32>{
+        let left = self.left.as_deref();
+        let right = self.right.as_deref();
+        match self.operator {
+            OperatorRPN::VAL(var) => {
+                let position = array_var.iter().position(|&variable| variable == var);
+                sets[position.unwrap()].clone()
+            }
+
+            OperatorRPN::NOT => {
+                NodeRPN::compute_sets_not(left.unwrap().compute_sets(universe, array_var, sets), universe)
+            }
+
+            OperatorRPN::AND => {
+                NodeRPN::compute_sets_and(
+                    left.unwrap().compute_sets(universe, array_var, sets),
+                    right.unwrap().compute_sets(universe, array_var, sets),
+                )
+            }
+            OperatorRPN::OR => {
+                NodeRPN::compute_sets_or(
+                    left.unwrap().compute_sets(universe, array_var, sets),
+                    right.unwrap().compute_sets(universe, array_var, sets),
+                )
+            }
+            OperatorRPN::XOR => {
+                NodeRPN::compute_sets_xor(
+                    left.unwrap().compute_sets(universe, array_var, sets),
+                    right.unwrap().compute_sets(universe, array_var, sets),
+                )
+            }
+            OperatorRPN::IMPLY => {
+                NodeRPN::compute_sets_or(
+                    left.unwrap().compute_sets(universe, array_var, sets),
+                    NodeRPN::compute_sets_not(right.unwrap().compute_sets(universe, array_var, sets), universe),
+                )
+            }
+            OperatorRPN::EQUAL => {
+                NodeRPN::compute_sets_equal(
+                    left.unwrap().compute_sets(universe, array_var, sets),
+                    right.unwrap().compute_sets(universe, array_var, sets),
+                    universe,
+                )
+            }
+
+            OperatorRPN::NONE => unreachable!()
+        }
+    }
+
+    fn compute_sets_not(set: Vec<i32>, universe: &Vec<i32>) -> Vec<i32>{
+        let mut new_set = Vec::new();
+        for n in universe{
+            if !set.contains(&n){
+                new_set.push(n.clone());
+            }
+        }
+        new_set
+    }
+
+    fn compute_sets_and(set_l: Vec<i32>, set_r: Vec<i32>,) -> Vec<i32>{
+        let mut new_set = Vec::new();
+        for n in set_l {
+            if set_r.contains(&n){
+                new_set.push(n);
+            }
+        }
+        new_set
+    }
+
+    fn compute_sets_or(set_l: Vec<i32>, set_r: Vec<i32>) -> Vec<i32>{
+        // vec![set_l, set_r].concat()
+        let mut new_set = set_l.clone();
+
+        for n in set_r {
+            if !set_l.contains(&n){
+                new_set.push(n);
+            }
+        }
+        new_set
+    }
+    fn compute_sets_xor(set_l: Vec<i32>, set_r: Vec<i32>) -> Vec<i32>{
+        let mut new_set = Vec::new();
+        for n in &set_l {
+            if !set_r.contains(&n){
+                new_set.push(*n);
+            }
+        }
+        for n in &set_r {
+            if !set_l.contains(&n){
+                new_set.push(*n);
+            }
+        }
+        new_set
+    }
+    fn compute_sets_equal(set_l: Vec<i32>, set_r: Vec<i32>, universe: &Vec<i32>) -> Vec<i32>{
+        let mut new_set = Vec::new();
+        for n in universe{
+            if set_l.contains(&n) == set_r.contains(&n){
+                new_set.push(*n);
+            }
+        }
+        new_set
+    }
+
+
+}
+
+pub fn get_all_var_from_formula(formula: &str) -> Vec<char> {
+    let mut array_var  = Vec::with_capacity(26);
+    for val in formula.chars() {
+        if "!&|^>=".find(val) == None {
+            if !array_var.contains(&val) {
+                array_var.push(val);
+            }
+        }
+    }
+
+    array_var
 }
