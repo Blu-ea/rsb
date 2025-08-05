@@ -8,4 +8,5 @@ pub mod ex06;
 pub mod ex07;
 pub mod ex08;
 pub mod ex09;
+pub mod ex10;
 mod node_rsb;
