@@ -22,5 +22,4 @@ pub fn eval_set(formula: &str, sets: Vec<Vec<i32>>) -> Vec<i32>{
     }
     universe.sort();
     rpn.compute_sets(&universe, &array_var, &sets)
-    
 }

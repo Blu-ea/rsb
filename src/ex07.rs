@@ -19,7 +19,7 @@ pub fn sat(formula: &str) -> bool {
     let max_value: u32 = 0x3FFFFFF >> (26 - array_var.len()); // 2^26 -1
 
     for i in 0 ..=max_value{
-        if root.compute(&i, &array_var){
+        if root.compute(i, &array_var){
             return true;
         };
     }

@@ -49,3 +49,10 @@ fn test_ex04_equivalent_operation() {
     test_truth_table("ABCCBA=^!>!&!!>");
     test_truth_table("AB!CC!B!A!|BA|&|CBA&B!A!&||&|||");
 }
+
+#[test]
+fn test_ex04_literal_value() {
+    test_truth_table("1");
+    test_truth_table("0");
+    test_truth_table("1!A&");
+}

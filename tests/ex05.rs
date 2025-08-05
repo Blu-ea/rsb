@@ -69,3 +69,13 @@ fn test_ex05_complex() {
     
     test_ex05_to_nnf("ABBCAA>=>=>!");
 }
+
+
+#[test]
+fn test_ex05_litteral_values() {
+    test_ex05_to_nnf("1!!");
+
+    test_ex05_to_nnf("ABC10>=>=!");
+
+}
+

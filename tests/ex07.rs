@@ -1,4 +1,4 @@
-use rsb::ex04::print_truth_table;
+// use rsb::ex04::print_truth_table;
 use rsb::ex07::sat;
 
 fn test_sat(formula: &str){
@@ -28,4 +28,14 @@ fn test_ex07_bigger_formula(){
     test_sat("ABCDEF>>>&&");
     test_sat("ABC||ABCABC&&&&&>");
     test_sat("ABCDEFGH&&&&&&&ABCDEFGH&&&&&&&^");
+}
+
+#[test]
+fn test_ex07_litteral_values() {
+    test_sat("1");
+    test_sat("0");
+
+    test_sat("ABC10>=>=!");
+    test_sat("00000>=>=");
+
 }

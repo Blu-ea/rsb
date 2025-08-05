@@ -2,6 +2,8 @@ use std::fmt::{Display, Write};
 
 #[derive(Copy, Clone)]
 pub enum OperatorRPN{
+    FALSE,
+    TRUE,
     VAL(char), // represent A .. Z  > 0 child
 
     NOT,    // represented by, `!` -> 1 child
@@ -19,6 +21,8 @@ impl OperatorRPN {
 
     fn new_from_char(val: char) -> OperatorRPN {
         match val{
+            '0' => OperatorRPN::FALSE,
+            '1' => OperatorRPN::TRUE,
             'A'..='Z' => OperatorRPN::VAL(val),
             '!' => OperatorRPN::NOT,
             '&' => OperatorRPN::AND,
@@ -52,7 +56,8 @@ impl Default for NodeRPN {
 impl Display for NodeRPN {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.operator {
-            OperatorRPN::VAL(_) => f.write_char(self.to_char()),
+            OperatorRPN::VAL(_) | OperatorRPN::TRUE | OperatorRPN::FALSE
+            => f.write_char(self.to_char()),
 
             OperatorRPN::NOT
             => write!(f, "{}{}",
@@ -76,7 +81,13 @@ impl NodeRPN {
     pub fn new_tree_from_formula(formula: &str) -> Result<NodeRPN, String> { // todo: check for not authorised char in the formula
         let mut root = NodeRPN::default();
 
-        for val in formula.chars().rev() {
+
+        for val in formula.chars() {
+            if "10!&|^>=".find(val) == None && !val.is_alphabetic(){
+                return Err(format!("RNP: unauthorised char - {}", val));
+            }
+        }
+            for val in formula.chars().rev() {
             let is_inserted = root.add_node(OperatorRPN::new_from_char(val), );
             if is_inserted == false {
                 return Err(format!("RNP: cannot compute - {} - missing operator", formula));
@@ -91,7 +102,8 @@ impl NodeRPN {
 
     fn add_node(&mut self, value: OperatorRPN) -> bool {
         match self.operator {
-            OperatorRPN::VAL(_) => false,
+            OperatorRPN::VAL(_) | OperatorRPN::TRUE | OperatorRPN::FALSE
+            => false,
 
             OperatorRPN::NOT => {
                 if self.left.is_none() {
@@ -129,7 +141,8 @@ impl NodeRPN {
 
     fn is_full(&self) -> bool {
         match self.operator {
-            OperatorRPN::VAL(_) => true,
+            OperatorRPN::VAL(_) | OperatorRPN::TRUE | OperatorRPN::FALSE
+            => true,
 
             OperatorRPN::NOT => self.left.as_deref().unwrap().is_full(),
 
@@ -146,13 +159,13 @@ impl NodeRPN {
         }
     }
 
-    fn render_table(&self, array_var: Vec<char>) {
+    pub fn render_table(&self, array_var: &[char]) {
         let max_value: u32 = 0x3FFFFFF >> (26 - array_var.len()); // 2^26 -1
-        for var in &array_var {
+        for var in array_var {
             print!("| {} ", var);
         }
         println!("|| Result |");
-        for _ in &array_var {
+        for _ in array_var {
             print!("|---");
         }
         println!("||--------|");
@@ -168,7 +181,7 @@ impl NodeRPN {
                 }
                 b += 1;
             }
-            let res = self.compute(&i, &array_var);
+            let res = self.compute(i, &array_var);
             if res {
                 println!("|| \x1b[92m{:>6}\x1b[0m |", res);
             } else {
@@ -177,8 +190,10 @@ impl NodeRPN {
         }
     }
 
-    pub fn compute(&self, i: &u32, array_var: &Vec<char>) -> bool {
+    pub fn compute(&self, i: u32, array_var: &[char]) -> bool {
         match self.operator {
+            OperatorRPN::TRUE => true,
+            OperatorRPN::FALSE => false,
             OperatorRPN::VAL(var) => {
                 let position = array_var.iter().position(|&variable| variable == var);
                 ((i >> position.unwrap()) & 1)== 1 // if 1 -> 1 == 1 so true | if 0 -> false
@@ -198,6 +213,8 @@ impl NodeRPN {
 
     fn to_char(&self) -> char {
         match self.operator {
+            OperatorRPN::FALSE => '0',
+            OperatorRPN::TRUE => '1',
             OperatorRPN::VAL(val) => val,
             OperatorRPN::NOT => '!',
             OperatorRPN::AND => '&',
@@ -209,8 +226,23 @@ impl NodeRPN {
         }
     }
 
+    //noinspection D
     pub fn to_nnf(&self, is_negate: bool) -> NodeRPN {
         match self.operator {
+            OperatorRPN::TRUE=> {
+                if is_negate {
+                    NodeRPN {operator: OperatorRPN::FALSE, left: None, right: None}
+                } else {
+                    NodeRPN {operator: OperatorRPN::TRUE, left: None, right: None}
+                }
+            }
+            OperatorRPN::FALSE => {
+                if !is_negate {
+                    NodeRPN {operator: OperatorRPN::FALSE, left: None, right: None}
+                } else {
+                    NodeRPN {operator: OperatorRPN::TRUE, left: None, right: None}
+                }
+            }
             OperatorRPN::VAL(_) => {
                 let mut nnf_node = NodeRPN { operator: OperatorRPN::NONE, left: None, right: None };
                 if is_negate {
@@ -286,6 +318,16 @@ impl NodeRPN {
 impl NodeRPN { // ex06 -> CNF
     pub fn to_cnf(&self) -> NodeRPN {
         match self.operator {
+            OperatorRPN::TRUE => NodeRPN{
+                operator: OperatorRPN::TRUE,
+                left: None,
+                right: None,
+            },
+            OperatorRPN::FALSE => NodeRPN{
+                operator: OperatorRPN::FALSE,
+                left: None,
+                right: None,
+            },
             OperatorRPN::VAL(var) => {
                 NodeRPN {
                     operator: OperatorRPN::VAL(var),
@@ -390,7 +432,8 @@ impl NodeRPN{ // ex09 -> Eval set
                 )
             }
 
-            OperatorRPN::NONE => unreachable!()
+            OperatorRPN::FALSE | OperatorRPN::TRUE => panic!("To evaluate set we cannot have True or False Statement"),
+            OperatorRPN::NONE => unreachable!(),
         }
     }
 
