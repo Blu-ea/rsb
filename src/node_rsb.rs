@@ -494,16 +494,3 @@ impl NodeRPN{ // ex09 -> Eval set
 
 
 }
-
-pub fn get_all_var_from_formula(formula: &str) -> Vec<char> {
-    let mut array_var  = Vec::with_capacity(26);
-    for val in formula.chars() {
-        if "!&|^>=".find(val) == None {
-            if !array_var.contains(&val) {
-                array_var.push(val);
-            }
-        }
-    }
-
-    array_var
-}
