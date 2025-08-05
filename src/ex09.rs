@@ -1,4 +1,4 @@
-use crate::node_rsb::NodeRPN;
+use crate::node_rsb::{NodeRPN, get_all_var_from_formula};
 
 pub fn eval_set(formula: &str, sets: Vec<Vec<i32>>) -> Vec<i32>{
     let rpn = NodeRPN::new_tree_from_formula(formula);
@@ -23,17 +23,4 @@ pub fn eval_set(formula: &str, sets: Vec<Vec<i32>>) -> Vec<i32>{
     }
     universe.sort();
     rpn.compute_sets(&universe, &array_var, &sets)
-}
-
-fn get_all_var_from_formula(formula: &str) -> Vec<char> {
-    let mut array_var  = Vec::with_capacity(26);
-    for val in formula.chars() {
-        if "!&|^>=".find(val) == None {
-            if !array_var.contains(&val) {
-                array_var.push(val);
-            }
-        }
-    }
-
-    array_var
 }
