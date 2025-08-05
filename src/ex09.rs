@@ -2,7 +2,8 @@ use crate::node_rsb::{get_all_var_from_formula, NodeRPN};
 
 pub fn eval_set(formula: &str, sets: Vec<Vec<i32>>) -> Vec<i32>{
     let rpn = NodeRPN::new_tree_from_formula(formula);
-    if rpn.is_err(){
+
+    if rpn.is_err() || formula.contains('1') || formula.contains('0') {
         panic!("Invalid formula given.")
     }
     let rpn = rpn.unwrap();
